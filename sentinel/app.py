@@ -1,0 +1,544 @@
+"""
+app.py -- Flask web app. Isme 3 cheezein hain:
+
+ 1) Ek NAKLI "target" website (home, search, product, login) -- jise hum protect kar rahe hain.
+    (Isme asli SQL ya file access nahi hai, isliye attack payloads sirf DETECTION test karte hain.)
+ 2) Sentinel ka guard: @app.before_request -- har request target tak pahunchne se PEHLE yahan se guzarti hai.
+ 3) Dashboard: /sentinel/dashboard (sirf apne computer se khulta hai).
+"""
+import csv
+import hmac
+import io
+import json
+import os
+import threading
+import urllib.request
+import uuid
+from datetime import datetime
+
+from flask import Flask, Response, abort, jsonify, render_template_string, request
+
+from . import config, db
+from .engine import Sentinel
+from .rules import decode
+
+app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 1_000_000   # 1 MB se badi request mana
+
+db.init_db()
+sentinel = Sentinel()
+
+SKIP_PREFIXES = ("/sentinel/", "/favicon.ico")   # inko inspect nahi karte
+LOCAL_IPS = ("127.0.0.1", "::1")
+DEMO_USER, DEMO_PASS = "demo", "demo123"          # demo login (sirf practice ke liye)
+# Headers jinme attacker payload chhupa sakta hai
+INSPECT_HEADERS = ("Cookie", "Referer", "Authorization", "X-Forwarded-Host", "X-Original-URL")
+PRODUCTS = {
+    1: ("Notebook", "books", 99),
+    2: ("Pen", "books", 20),
+    3: ("Backpack", "fashion", 899),
+    4: ("Water Bottle", "sports", 249),
+    5: ("Desk Lamp", "home", 599),
+}
+
+
+# =====================================================================
+#  GUARD: har request yahan se guzarti hai
+# =====================================================================
+def split_pairs(raw):
+    """'a=1&b=2' -> names=['a','b'], values=['1','2'] (jaise aaya waise, decode kiye bina)."""
+    names, values = [], []
+    for part in raw.split("&"):
+        if not part:
+            continue
+        name, _, value = part.partition("=")
+        names.append(name)
+        values.append(value)
+    return names, values
+
+
+def _send_webhook_alert(event_id: int, ip: str, method: str, path: str, decision: dict):
+    """Incident block hone par optional webhook alert bhejo (Slack, Discord, SIEM)."""
+    if not config.WEBHOOK_URL:
+        return
+    def _post():
+        try:
+            payload = json.dumps({
+                "incident_id": event_id,
+                "timestamp": datetime.now().isoformat(),
+                "ip": ip,
+                "method": method,
+                "path": path,
+                "action": decision["action"],
+                "category": decision["category"],
+                "reason": decision["reason"],
+                "rule_score": decision["rule_score"],
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                config.WEBHOOK_URL,
+                data=payload,
+                headers={"Content-Type": "application/json", "User-Agent": "AI-Sentinel-Alerter/1.0"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=3):
+                pass
+        except Exception:
+            pass
+    threading.Thread(target=_post, daemon=True).start()
+
+
+@app.before_request
+def guard():
+    if request.path.startswith(SKIP_PREFIXES):
+        return None
+
+    # Har request ko unique ID do (tracing ke liye)
+    request.request_id = uuid.uuid4().hex[:8]
+
+    ip = request.remote_addr or "unknown"       # X-Forwarded-For par bharosa nahi (spoof ho sakta hai)
+    raw_query = request.query_string.decode("utf-8", "replace")
+    names, values = split_pairs(raw_query)
+    raw_text = raw_query
+
+    if request.method in ("POST", "PUT", "PATCH"):
+        body = request.get_data(as_text=True)[: config.MAX_INSPECT_CHARS]
+        if request.mimetype == "application/x-www-form-urlencoded":
+            body_names, body_values = split_pairs(body)
+            names += body_names
+            values += body_values
+        elif body:
+            values.append(body)
+        raw_text = (raw_text + "&" + body) if raw_text else body
+
+    # Headers bhi inspect karo — attacker Cookie/Referer/Auth me payload chhupa sakta hai
+    for hdr_name in INSPECT_HEADERS:
+        hdr_val = request.headers.get(hdr_name, "")
+        if hdr_val:
+            values.append(hdr_val)
+    for c_val in request.cookies.values():
+        if c_val:
+            values.append(c_val)
+
+    decision = sentinel.inspect(request.method, request.path, values,
+                                request.headers.get("User-Agent", ""), ip, raw_names=names)
+
+    # Register me likho (log fail ho jaye to bhi website na ruke)
+    try:
+        req_id = getattr(request, "request_id", "")
+        event_id = db.log_event(ip, request.method, request.path, decode(raw_text)[:300], decision, req_id)
+    except Exception:
+        app.logger.exception("event log nahi ho paya")
+        event_id = 0
+
+    if decision["enforced"]:
+        if decision["action"] == "block":
+            _send_webhook_alert(event_id, ip, request.method, request.path, decision)
+            return Response(f"403 Forbidden - blocked by AI-Sentinel (incident #{event_id})\n",
+                            status=403, mimetype="text/plain")
+        if decision["action"] == "rate_limit":
+            return Response("429 Too Many Requests - slow down\n", status=429,
+                            headers={"Retry-After": str(config.RATE_WINDOW)}, mimetype="text/plain")
+    return None
+
+
+# =====================================================================
+#  SECURITY RESPONSE HEADERS
+# =====================================================================
+@app.after_request
+def add_security_headers(response):
+    """Har response me security headers daal do (clickjacking, XSS, MIME sniffing se bachne ke liye)."""
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    # Dashboard me inline script/style hai, isliye 'unsafe-inline' zaroori hai
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' 'self'"
+    )
+    # Request ID response me bhi bhejo (debugging/tracing ke liye)
+    req_id = getattr(request, "request_id", None)
+    if req_id:
+        response.headers["X-Request-ID"] = req_id
+    return response
+
+
+# =====================================================================
+#  NAKLI TARGET WEBSITE
+# =====================================================================
+HEAD = """<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>Demo Shop</title>
+<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:2rem auto;padding:0 1rem;line-height:1.5}
+input,button{padding:.4rem;margin:.2rem 0}a{color:#0b5fff}</style></head><body>
+<h1>Demo Shop <small style="font-size:.5em;color:#666">protected by AI-Sentinel</small></h1>
+<p><a href="/">Home</a> | <a href="/products">Products</a> | <a href="/about">About</a> | <a href="/login">Login</a></p><hr>"""
+TAIL = "</body></html>"
+
+
+def page(body, **ctx):
+    return render_template_string(HEAD + body + TAIL, **ctx)   # Jinja autoescape ON: user input safe
+
+
+@app.route("/")
+def home():
+    return page("""<h2>Welcome</h2>
+<form action="/search" method="get"><input name="q" placeholder="search products"> <button>Search</button></form>
+<p>Demo login: <code>demo</code> / <code>demo123</code></p>
+<p><a href="/sentinel/dashboard">Open Sentinel dashboard</a> (sirf is computer se)</p>""")
+
+
+@app.route("/about")
+def about():
+    return page("<h2>About</h2><p>Ye ek practice website hai jise AI-Sentinel protect karta hai.</p>")
+
+
+@app.route("/products")
+def products():
+    category = request.args.get("category", "")
+    items = [(pid, n, c, p) for pid, (n, c, p) in PRODUCTS.items() if not category or c == category.lower()]
+    return page("""<h2>Products {% if category %}in "{{ category }}"{% endif %}</h2>
+<ul>{% for pid, n, c, p in items %}<li><a href="/product?id={{ pid }}">{{ n }}</a> - Rs {{ p }} ({{ c }})</li>
+{% else %}<li>No products.</li>{% endfor %}</ul>""", items=items, category=category)
+
+
+@app.route("/product")
+def product():
+    try:
+        pid = int(request.args.get("id", ""))
+    except ValueError:
+        return Response("400 Bad Request: id must be a number\n", status=400, mimetype="text/plain")
+    if pid not in PRODUCTS:
+        return Response("404 Not Found\n", status=404, mimetype="text/plain")
+    name, category, price = PRODUCTS[pid]
+    return page("<h2>{{ name }}</h2><p>Category: {{ category }}<br>Price: Rs {{ price }}</p>",
+                name=name, category=category, price=price)
+
+
+@app.route("/search")
+def search():
+    q = request.args.get("q", "")
+    hits = [n for n, _, _ in PRODUCTS.values() if q.lower() in n.lower()] if q else []
+    return page("""<h2>Results for: {{ q }}</h2>
+<ul>{% for n in hits %}<li>{{ n }}</li>{% else %}<li>Nothing found.</li>{% endfor %}</ul>""", q=q, hits=hits)
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        user = request.form.get("username", "")
+        password = request.form.get("password", "")
+        # compare_digest = constant-time comparison (timing attack se bachne ke liye)
+        ok = hmac.compare_digest(user.encode(), DEMO_USER.encode()) & \
+             hmac.compare_digest(password.encode(), DEMO_PASS.encode())
+        if ok:
+            return page("<h2>Welcome, {{ user }}!</h2>", user=user)
+        sentinel.record_failed_login(request.remote_addr or "unknown")   # brute-force counter
+        return page("<h2>Login failed</h2><p>Wrong username or password.</p>"), 401
+    return page("""<h2>Login</h2><form method="post">
+<input name="username" placeholder="username"><br>
+<input name="password" type="password" placeholder="password"><br><button>Login</button></form>""")
+
+
+# =====================================================================
+#  DASHBOARD (CCTV screen)
+# =====================================================================
+DASHBOARD = """<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI-Sentinel Dashboard</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#1b1f24;--muted:#5b6570;--line:#e2e5e9;--accent:#0b5fff;--hover:#eef2f6}
+@media (prefers-color-scheme:dark){:root{--bg:#14171a;--card:#1d2126;--text:#e8eaed;--muted:#9aa4af;--line:#2e343b;--accent:#6ea0ff;--hover:#252a32}}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:1rem}
+.header-row{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.75rem;margin-bottom:.4rem}
+h1{margin:.2rem 0;font-size:1.8rem;letter-spacing:-0.5px}
+h2{margin:1.4rem 0 .4rem;font-size:1.05rem}
+.mode{color:var(--muted);font-size:.9rem}
+.header-actions{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.btn{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:.4rem .75rem;font-size:.85rem;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:.35rem;font-weight:500;transition:all .15s ease}
+.btn:hover{background:var(--hover);border-color:var(--muted)}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{opacity:.9;color:#fff}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.6rem;margin-top:.8rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:.7rem;box-shadow:0 1px 3px rgba(0,0,0,0.03)}
+.card b{display:block;font-size:1.6rem}.card span{color:var(--muted);font-size:.85rem}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:.6rem .8rem;box-shadow:0 1px 3px rgba(0,0,0,0.03)}
+.row{display:flex;align-items:center;gap:.6rem;margin:.25rem 0}
+.row .label{width:150px;font-size:.9rem}.bar{height:12px;background:var(--accent);border-radius:3px}
+.controls-bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;margin:1rem 0 .5rem}
+.filter-group{display:flex;gap:.35rem;flex-wrap:wrap}
+.filter-pill{background:var(--card);border:1px solid var(--line);color:var(--muted);border-radius:99px;padding:.25rem .7rem;font-size:.8rem;cursor:pointer;font-weight:500;transition:all .15s}
+.filter-pill:hover{background:var(--hover);color:var(--text)}
+.filter-pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.search-input{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:.4rem .65rem;font-size:.85rem;outline:none;min-width:230px}
+.search-input:focus{border-color:var(--accent)}
+.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.85rem}
+th,td{text-align:left;padding:.4rem .5rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600}td.payload{max-width:260px;word-break:break-all;font-family:monospace}
+.badge{padding:.12rem .5rem;border-radius:99px;font-size:.78rem;font-weight:600;border:1px solid var(--line);display:inline-block}
+.badge.block{background:#d92d20;color:#fff;border-color:#b42318}
+.badge.alert{background:#f79009;color:#111;border-color:#dc6803}
+.badge.rate_limit{background:#7a5af8;color:#fff;border-color:#6938ef}
+.badge.allow{background:transparent;color:var(--muted)}
+</style></head>
+<body onload="
+(function(){
+  window.isAutoRefresh = true;
+  window.countdown = 5;
+  window.activeAction = 'all';
+
+  var timerEl = document.getElementById('refresh-timer');
+  var toggleBtn = document.getElementById('toggle-refresh');
+  var statusSpan = document.getElementById('refresh-status-text');
+
+  setInterval(function(){
+    if (!window.isAutoRefresh) return;
+    window.countdown--;
+    if (window.countdown <= 0) {
+      window.location.reload();
+    } else if (timerEl) {
+      timerEl.textContent = window.countdown + 's';
+    }
+  }, 1000);
+
+  window.toggleRefresh = function(){
+    window.isAutoRefresh = !window.isAutoRefresh;
+    if (window.isAutoRefresh) {
+      window.countdown = 5;
+      if (toggleBtn) toggleBtn.textContent = '⏸ Pause';
+      if (statusSpan) statusSpan.innerHTML = 'Auto-refresh in <b id=\'refresh-timer\'>5s</b>';
+      timerEl = document.getElementById('refresh-timer');
+    } else {
+      if (toggleBtn) toggleBtn.textContent = '▶ Resume';
+      if (statusSpan) statusSpan.innerHTML = 'Auto-refresh <b>PAUSED</b>';
+    }
+  };
+
+  window.setFilter = function(action, btn){
+    window.activeAction = action;
+    var pills = document.querySelectorAll('.filter-pill');
+    for (var i = 0; i < pills.length; i++) {
+      pills[i].classList.remove('active');
+    }
+    btn.classList.add('active');
+    window.filterEvents();
+  };
+
+  window.filterEvents = function(){
+    var sInput = document.getElementById('search-input');
+    var query = (sInput && sInput.value ? sInput.value : '').toLowerCase().trim();
+    if (query && window.isAutoRefresh) {
+      window.toggleRefresh();
+    }
+    var rows = document.querySelectorAll('#events-table tbody tr');
+    var count = 0;
+    for (var j = 0; j < rows.length; j++) {
+      var r = rows[j];
+      var act = r.getAttribute('data-action');
+      var searchData = r.getAttribute('data-search') || '';
+      if (!act) continue;
+      var matchAct = (window.activeAction === 'all' || act === window.activeAction);
+      var matchSearch = (!query || searchData.indexOf(query) !== -1);
+      if (matchAct && matchSearch) {
+        r.style.display = '';
+        count++;
+      } else {
+        r.style.display = 'none';
+      }
+    }
+    var countEl = document.getElementById('events-count');
+    if (countEl) countEl.textContent = 'Showing ' + count + ' of ' + rows.length + ' events';
+  };
+})()
+">
+<main>
+<div class="header-row">
+  <div>
+    <h1>AI-Sentinel</h1>
+    <div class="mode">Mode: {{ mode }} &middot; <span id="refresh-status-text">Auto-refresh in <b id="refresh-timer">5s</b></span></div>
+  </div>
+  <div class="header-actions">
+    <button id="toggle-refresh" class="btn" onclick="toggleRefresh()">⏸ Pause</button>
+    <a href="/sentinel/export/csv" class="btn btn-primary" download>📥 Export Incidents (CSV)</a>
+  </div>
+</div>
+
+<div class="cards">{% for label, value in cards %}<div class="card"><b>{{ value }}</b><span>{{ label }}</span></div>{% endfor %}</div>
+
+<h2>Attack categories</h2>
+<div class="panel">{% for name, n in categories %}
+<div class="row"><span class="label">{{ name }}</span><div class="bar" style="width:{{ (n / max_cat * 100)|int }}%"></div><span>{{ n }}</span></div>
+{% else %}<span class="mode">No suspicious events yet.</span>{% endfor %}</div>
+
+<h2>Top suspicious IPs</h2>
+<div class="panel">{% for ip, n in top_ips %}<div class="row"><span class="label">{{ ip }}</span><span>{{ n }} events</span></div>
+{% else %}<span class="mode">None yet.</span>{% endfor %}</div>
+
+<h2>Currently banned IPs</h2>
+<div class="panel">{% for ip, left in banned %}<div class="row"><span class="label">{{ ip }}</span><span>{{ left }}s left</span>
+<button class="btn" onclick="fetch('/sentinel/api/unban/{{ ip }}',{method:'POST'}).then(function(){location.reload()})" style="margin-left:.5rem;font-size:.75rem">🔓 Unban</button></div>
+{% else %}<span class="mode">No active bans.</span>{% endfor %}</div>
+
+<div class="controls-bar">
+  <h2>Recent events (latest 50)</h2>
+  <span id="events-count" class="mode">Showing {{ events|length }} events</span>
+</div>
+
+<div class="controls-bar">
+  <div class="filter-group">
+    <button class="filter-pill active" onclick="setFilter('all', this)">All</button>
+    <button class="filter-pill" onclick="setFilter('block', this)">Blocked</button>
+    <button class="filter-pill" onclick="setFilter('alert', this)">Alerts</button>
+    <button class="filter-pill" onclick="setFilter('rate_limit', this)">Rate-limited</button>
+    <button class="filter-pill" onclick="setFilter('allow', this)">Allowed</button>
+  </div>
+  <input type="text" id="search-input" class="search-input" placeholder="🔍 Search IP, path, payload..." oninput="filterEvents()">
+</div>
+
+<div class="panel scroll"><table id="events-table">
+<thead>
+<tr><th>Time</th><th>IP</th><th>Request</th><th>Payload</th><th>Action</th><th>Category</th><th>Rule score</th><th>ML score</th><th>Why</th></tr>
+</thead>
+<tbody>
+{% for e in events %}
+<tr data-action="{{ e.action }}" data-search="{{ (e.ip ~ ' ' ~ e.method ~ ' ' ~ e.path ~ ' ' ~ e.payload ~ ' ' ~ e.category ~ ' ' ~ e.reason)|lower }}">
+<td>{{ e.time }}</td><td>{{ e.ip }}</td><td>{{ e.method }} {{ e.path }}</td><td class="payload">{{ e.payload }}</td>
+<td><span class="badge {{ e.action }}">{{ e.action }}</span>{% if not e.enforced and e.action in ('block','rate_limit') %} (dry-run){% endif %}</td>
+<td>{{ e.category }}</td><td>{{ e.rule_score }}</td><td>{{ e.ml_score if e.ml_score is not none else '-' }}</td><td>{{ e.reason }}</td>
+</tr>
+{% else %}
+<tr><td colspan="9">No events yet. Open the website and try something.</td></tr>
+{% endfor %}
+</tbody>
+</table></div></main></body></html>"""
+
+
+def _local_only():
+    if os.environ.get("VERCEL") or os.environ.get("SENTINEL_ALLOW_REMOTE_DASHBOARD") == "1":
+        return
+    if request.remote_addr not in LOCAL_IPS:
+        abort(403)
+
+
+def _api_auth():
+    """Localhost allowed; remote requests allowed agar valid SENTINEL_API_KEY ho ya Vercel demo mode ho."""
+    if os.environ.get("VERCEL") or os.environ.get("SENTINEL_ALLOW_REMOTE_DASHBOARD") == "1":
+        return
+    if request.remote_addr in LOCAL_IPS:
+        return
+    if config.API_KEY:
+        auth_hdr = request.headers.get("Authorization", "")
+        token = auth_hdr.replace("Bearer ", "").strip() if "Bearer " in auth_hdr else ""
+        key_hdr = request.headers.get("X-API-Key", "").strip()
+        if (token and hmac.compare_digest(token.encode(), config.API_KEY.encode())) or \
+           (key_hdr and hmac.compare_digest(key_hdr.encode(), config.API_KEY.encode())):
+            return
+    abort(403)
+
+
+@app.route("/sentinel/dashboard")
+def dashboard():
+    _local_only()
+    s = db.stats()
+    events = db.recent_events(50)
+    for e in events:
+        e["time"] = datetime.fromtimestamp(e["ts"]).strftime("%H:%M:%S")
+    by = s["by_action"]
+    cards = [("Total requests", s["total"]), ("Allowed", by.get("allow", 0)), ("Alerts", by.get("alert", 0)),
+             ("Blocked", by.get("block", 0)), ("Rate-limited", by.get("rate_limit", 0))]
+    mode = ("DRY-RUN (nothing is really blocked)" if sentinel.dry_run else "ENFORCING") + \
+           (" + ML anomaly" if sentinel.use_ml else " (rules only)")
+    return render_template_string(
+        DASHBOARD, cards=cards, events=events, mode=mode, categories=s["by_category"],
+        max_cat=max([n for _, n in s["by_category"]], default=1), top_ips=s["top_ips"],
+        banned=sentinel.banned_ips())
+
+
+@app.route("/sentinel/api/events")
+def api_events():
+    _api_auth()
+    try:
+        limit = min(int(request.args.get("limit", 50)), 500)
+    except ValueError:
+        return Response("limit must be a number\n", status=400, mimetype="text/plain")
+    return jsonify(db.recent_events(limit))
+
+
+@app.route("/sentinel/api/stats")
+def api_stats():
+    """Dashboard statistics JSON format me."""
+    _api_auth()
+    return jsonify(db.stats())
+
+
+@app.route("/sentinel/health")
+def health():
+    """System health check — ML loaded hai? DB kaam kar raha? Uptime?"""
+    _api_auth()
+    db_ok = True
+    try:
+        db.stats()
+    except Exception:
+        db_ok = False
+    return jsonify({
+        "status": "ok" if db_ok else "degraded",
+        "ml_enabled": sentinel.use_ml,
+        "ml_loaded": sentinel.detector is not None and sentinel.detector.ready if sentinel.use_ml else None,
+        "dry_run": sentinel.dry_run,
+        "db_ok": db_ok,
+        "active_bans": len(sentinel.banned_ips()),
+    })
+
+
+@app.route("/sentinel/api/unban/<ip>", methods=["POST"])
+def unban_ip(ip):
+    """Manually ek IP ka ban hatao."""
+    _api_auth()
+    success = sentinel.unban(ip)
+    return jsonify({"ip": ip, "unbanned": success})
+
+
+@app.route("/sentinel/export/csv")
+def export_csv():
+    _local_only()
+    try:
+        limit = min(int(request.args.get("limit", 500)), 5000)
+    except ValueError:
+        limit = 500
+    events = db.recent_events(limit)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "id", "timestamp", "datetime", "ip", "method", "path", "payload",
+        "action", "category", "rules", "rule_score", "ml_score", "ml_flag",
+        "reason", "enforced", "latency_ms"
+    ])
+    for e in events:
+        dt = datetime.fromtimestamp(e["ts"]).strftime("%Y-%m-%d %H:%M:%S")
+        writer.writerow([
+            e.get("id"),
+            e.get("ts"),
+            dt,
+            e.get("ip"),
+            e.get("method"),
+            e.get("path"),
+            e.get("payload"),
+            e.get("action"),
+            e.get("category"),
+            e.get("rules"),
+            e.get("rule_score"),
+            e.get("ml_score"),
+            e.get("ml_flag"),
+            e.get("reason"),
+            e.get("enforced"),
+            e.get("latency_ms")
+        ])
+
+    csv_data = output.getvalue()
+    filename = f"sentinel-incidents-{datetime.now().strftime('%Y%m%d-%H%M%S')}.csv"
+    return Response(
+        csv_data,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+

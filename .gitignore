@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Database test files
+*.db-journal
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+
+# Keep data/model.joblib for deployment, ignore sqlite db if created locally
+data/sentinel.db
