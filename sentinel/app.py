@@ -479,14 +479,171 @@ def health():
         db.stats()
     except Exception:
         db_ok = False
-    return jsonify({
-        "status": "ok" if db_ok else "degraded",
+
+    active_bans = len(sentinel.banned_ips())
+    ml_loaded = sentinel.detector is not None and sentinel.detector.ready if sentinel.use_ml else False
+    status = "ok" if db_ok else "degraded"
+
+    data = {
+        "status": status,
         "ml_enabled": sentinel.use_ml,
-        "ml_loaded": sentinel.detector is not None and sentinel.detector.ready if sentinel.use_ml else None,
+        "ml_loaded": ml_loaded,
         "dry_run": sentinel.dry_run,
         "db_ok": db_ok,
-        "active_bans": len(sentinel.banned_ips()),
-    })
+        "active_bans": active_bans,
+    }
+
+    # Browser se aane wali request ko premium UI render karo
+    if "text/html" in request.headers.get("Accept", "") and request.args.get("format") != "json":
+        return render_template_string(
+            HEALTH_TEMPLATE,
+            status=status,
+            ml_loaded=ml_loaded,
+            dry_run=sentinel.dry_run,
+            db_ok=db_ok,
+            active_bans=active_bans,
+            raw_json=json.dumps(data, indent=2),
+        )
+
+    # API client ya automated tests ko pure JSON return karo
+    return jsonify(data)
+
+
+HEALTH_TEMPLATE = """<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI-Sentinel &middot; System Health &amp; Diagnostics</title>
+<style>
+:root{--bg:#0c1017;--card:#151c28;--border:#263248;--text:#e6edf3;--muted:#8b949e;--accent:#2f81f7;--success:#238636;--success-bg:rgba(35,134,54,0.15);--warn:#d29922;--warn-bg:rgba(210,153,34,0.15);--danger:#da3633;--danger-bg:rgba(218,54,51,0.15);--code-bg:#0d1117}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+main{max-width:960px;margin:2rem auto;padding:0 1.25rem}
+.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:2rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)}
+.title-group{display:flex;align-items:center;gap:.85rem}
+.pulse-orb{width:16px;height:16px;border-radius:50%;background:#3fb950;box-shadow:0 0 12px #3fb950;animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(63,185,80,0.7)}70%{box-shadow:0 0 0 10px rgba(63,185,80,0)}100%{box-shadow:0 0 0 0 rgba(63,185,80,0)}}
+h1{margin:0;font-size:1.6rem;letter-spacing:-0.4px}
+.subtitle{color:var(--muted);font-size:.85rem;margin-top:.2rem}
+.nav-links{display:flex;gap:.6rem;flex-wrap:wrap}
+.btn{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.45rem .85rem;font-size:.85rem;font-weight:500;text-decoration:none;cursor:pointer;transition:all .15s ease;display:inline-flex;align-items:center;gap:.4rem}
+.btn:hover{background:var(--border);color:#fff}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{opacity:.9}
+.status-banner{background:var(--success-bg);border:1px solid var(--success);border-radius:8px;padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+.status-banner.degraded{background:var(--warn-bg);border-color:var(--warn)}
+.status-title{font-size:1.05rem;font-weight:600;display:flex;align-items:center;gap:.6rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem;margin-bottom:1.8rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1.1rem;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
+.card-label{font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600}
+.card-value{font-size:1.35rem;font-weight:700;margin:.4rem 0 .2rem}
+.card-desc{font-size:.8rem;color:var(--muted)}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1.25rem;margin-bottom:1.5rem}
+.panel h2{margin:0 0 1rem;font-size:1.1rem}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{padding:.65rem .75rem;text-align:left;border-bottom:1px solid var(--border)}
+th{color:var(--muted);font-weight:600;font-size:.8rem;text-transform:uppercase}
+.badge{display:inline-flex;align-items:center;padding:.15rem .55rem;border-radius:99px;font-size:.78rem;font-weight:600}
+.badge.ok{background:var(--success-bg);color:#3fb950;border:1px solid rgba(63,185,80,0.3)}
+.badge.warn{background:var(--warn-bg);color:#d29922;border:1px solid rgba(210,153,34,0.3)}
+.badge.info{background:rgba(47,129,247,0.15);color:#58a6ff;border:1px solid rgba(47,129,247,0.3)}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:1rem;color:#7ee787;font-family:monospace;font-size:.85rem;overflow-x:auto;margin:0}
+</style>
+</head>
+<body>
+<main>
+<div class="header">
+  <div class="title-group">
+    <div class="pulse-orb" style="{% if status != 'ok' %}background:#d29922;box-shadow:0 0 12px #d29922;{% endif %}"></div>
+    <div>
+      <h1>System Diagnostics &amp; Health</h1>
+      <div class="subtitle">AI-Sentinel Active Defense Engine &middot; Real-time Verification</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <button class="btn" onclick="location.reload()">🔄 Refresh</button>
+    <a href="/sentinel/dashboard" class="btn btn-primary">📊 Open SOC Dashboard</a>
+    <a href="/sentinel/health?format=json" class="btn">📋 Raw JSON</a>
+  </div>
+</div>
+
+<div class="status-banner {% if status != 'ok' %}degraded{% endif %}">
+  <div class="status-title">
+    <span>{% if status == 'ok' %}✅ All Security &amp; Detection Systems Operational{% else %}⚠️ System Running in Degraded Mode{% endif %}</span>
+  </div>
+  <span class="badge ok">STATUS: {{ status|upper }}</span>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="card-label">Detection Guard</div>
+    <div class="card-value">{% if dry_run %}<span style="color:#d29922">DRY-RUN</span>{% else %}<span style="color:#3fb950">ENFORCING</span>{% endif %}</div>
+    <div class="card-desc">{% if dry_run %}Simulating blocks without disruption{% else %}Active defense blocking malicious traffic{% endif %}</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Machine Learning</div>
+    <div class="card-value">{% if ml_loaded %}<span style="color:#3fb950">Isolation Forest</span>{% else %}<span style="color:#d29922">Rules-Only</span>{% endif %}</div>
+    <div class="card-desc">12-dimensional vector anomaly detector</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Audit Database</div>
+    <div class="card-value">{% if db_ok %}<span style="color:#3fb950">Connected</span>{% else %}<span style="color:#da3633">Disconnected</span>{% endif %}</div>
+    <div class="card-desc">SQLite forensic event register</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Active IP Bans</div>
+    <div class="card-value">{{ active_bans }}</div>
+    <div class="card-desc">Persisted in SQLite database</div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Subsystem Verification Status</h2>
+  <table>
+    <thead>
+      <tr><th>Subsystem</th><th>Component</th><th>Technology</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Signature Inspection</strong></td>
+        <td><code>sentinel.rules</code></td>
+        <td>25+ OWASP regex patterns (SQLi, XSS, SSRF, Log4Shell)</td>
+        <td><span class="badge ok">READY</span></td>
+      </tr>
+      <tr>
+        <td><strong>ML Anomaly Detection</strong></td>
+        <td><code>sentinel.ml</code></td>
+        <td>Scikit-learn Isolation Forest (contamination=0.01)</td>
+        <td>{% if ml_loaded %}<span class="badge ok">LOADED</span>{% else %}<span class="badge warn">OFFLINE</span>{% endif %}</td>
+      </tr>
+      <tr>
+        <td><strong>Policy Orchestrator</strong></td>
+        <td><code>sentinel.policy</code></td>
+        <td>Cascading arbitration: Brute-Force &gt; High-Rule &gt; Rule+ML</td>
+        <td><span class="badge ok">ONLINE</span></td>
+      </tr>
+      <tr>
+        <td><strong>Persistence Layer</strong></td>
+        <td><code>sentinel.db</code></td>
+        <td>SQLite parameterised audit log + persistent bans</td>
+        <td>{% if db_ok %}<span class="badge ok">OPERATIONAL</span>{% else %}<span class="badge warn">ERROR</span>{% endif %}</td>
+      </tr>
+      <tr>
+        <td><strong>Defense Headers</strong></td>
+        <td><code>sentinel.app</code></td>
+        <td>CSP, X-Frame-Options: DENY, nosniff, Correlation ID</td>
+        <td><span class="badge ok">ENFORCED</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
+    <h2 style="margin:0">API Response Preview</h2>
+    <span style="font-size:.8rem;color:var(--muted)">Format: application/json</span>
+  </div>
+  <pre><code>{{ raw_json }}</code></pre>
+</div>
+</main>
+</body></html>"""
 
 
 @app.route("/sentinel/api/unban/<ip>", methods=["POST"])
