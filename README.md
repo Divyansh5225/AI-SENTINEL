@@ -3,7 +3,7 @@
 Ek chhota, **chalta hua** prototype jo tumhare paper ke architecture ko implement karta hai:
 request inspect karo → rules + ML se check karo → faisla lo → register me likho → dashboard pe dikhao.
 
-> Ye ek **starter** hai (~600 lines), production WAF nahi. Ye apni hi nakli "Demo Shop" website ko protect karta hai.
+> Ye ek active WAF + ML anomaly prototype hai jo enterprise business portal ("NexusCorp Enterprise Suite") ko protect karta hai.
 > Sab kuch sirf **tumhare apne computer (localhost)** par chalta hai.
 
 ---

@@ -34,11 +34,12 @@ DEMO_USER, DEMO_PASS = "demo", "demo123"          # demo login (sirf practice ke
 # Headers jinme attacker payload chhupa sakta hai
 INSPECT_HEADERS = ("Cookie", "Referer", "Authorization", "X-Forwarded-Host", "X-Original-URL")
 PRODUCTS = {
-    1: ("Notebook", "books", 99),
-    2: ("Pen", "books", 20),
-    3: ("Backpack", "fashion", 899),
-    4: ("Water Bottle", "sports", 249),
-    5: ("Desk Lamp", "home", 599),
+    1: ("Cloud Infrastructure Node & Kubernetes Cluster (Notebook Pod)", "infrastructure", 24999),
+    2: ("Enterprise ERP Financial Ledger & Audit Suite (Pen Core)", "finance", 15400),
+    3: ("Global Supply Chain Logistics & Fleet Telematics", "operations", 89000),
+    4: ("Cybersecurity Threat Intelligence & SIEM Collector", "security", 45000),
+    5: ("Corporate Directory IAM & Identity Governance", "governance", 12500),
+    6: ("Real-time Business Intelligence & Executive Analytics", "analytics", 32000),
 }
 
 
@@ -163,15 +164,73 @@ def add_security_headers(response):
 
 
 # =====================================================================
-#  NAKLI TARGET WEBSITE
+#  ENTERPRISE CORPORATE TARGET PORTAL (NexusCorp Enterprise Suite)
 # =====================================================================
 HEAD = """<!doctype html><html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>Demo Shop</title>
-<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:2rem auto;padding:0 1rem;line-height:1.5}
-input,button{padding:.4rem;margin:.2rem 0}a{color:#0b5fff}</style></head><body>
-<h1>Demo Shop <small style="font-size:.5em;color:#666">protected by AI-Sentinel</small></h1>
-<p><a href="/">Home</a> | <a href="/products">Products</a> | <a href="/about">About</a> | <a href="/login">Login</a></p><hr>"""
-TAIL = "</body></html>"
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NexusCorp &middot; Enterprise Resource &amp; Cloud Platform</title>
+<style>
+:root{--bg:#0b0f19;--card:#151c28;--border:#263248;--text:#e6edf3;--muted:#8b949e;--accent:#2f81f7;--accent-hover:#58a6ff;--line:#263248;--success:#238636;--success-bg:rgba(35,134,54,0.15)}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.6}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:.8rem 1.5rem}
+.nav-wrap{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
+.brand{font-size:1.25rem;font-weight:700;letter-spacing:-0.4px;color:#fff;text-decoration:none;display:flex;align-items:center;gap:.6rem}
+.badge-corp{background:var(--success-bg);color:#3fb950;border:1px solid rgba(63,185,80,0.3);padding:.15rem .55rem;border-radius:99px;font-size:.72rem;font-weight:600}
+nav{display:flex;gap:1.1rem;align-items:center;flex-wrap:wrap}
+nav a{color:var(--muted);text-decoration:none;font-size:.9rem;font-weight:500;transition:color .15s}
+nav a:hover,nav a.active{color:#fff}
+.nav-btn{background:rgba(47,129,247,0.15);color:#58a6ff;border:1px solid rgba(47,129,247,0.3);padding:.35rem .75rem;border-radius:6px;font-size:.82rem}
+.nav-btn:hover{background:var(--accent);color:#fff}
+main{max-width:1100px;margin:2rem auto;padding:0 1.25rem}
+.hero{background:linear-gradient(180deg,rgba(38,50,72,0.4) 0%,rgba(21,28,40,0.6) 100%);border:1px solid var(--border);border-radius:10px;padding:2rem;margin-bottom:2rem}
+.hero h1{margin:0 0 .5rem;font-size:1.85rem;letter-spacing:-0.5px}
+.hero p{margin:0 0 1.25rem;color:var(--muted);font-size:1rem;max-width:760px}
+.metrics-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.8rem;margin-bottom:1.5rem}
+.m-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.9rem;box-shadow:0 2px 6px rgba(0,0,0,0.2)}
+.m-card b{display:block;font-size:1.3rem;color:#fff}
+.m-card span{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+.search-bar{display:flex;gap:.5rem;max-width:600px;margin-bottom:1.2rem}
+input[type="text"],input[type="password"]{flex:1;background:var(--card);border:1px solid var(--border);color:#fff;border-radius:6px;padding:.55rem .85rem;font-size:.9rem;outline:none}
+input:focus{border-color:var(--accent)}
+button,.btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:.55rem 1.1rem;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .15s}
+button:hover,.btn:hover{background:var(--accent-hover)}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1.4rem;margin-bottom:1.5rem}
+.panel h2{margin:0 0 1rem;font-size:1.2rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}
+.card{background:rgba(21,28,40,0.5);border:1px solid var(--border);border-radius:8px;padding:1.1rem;transition:transform .15s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.card h3{margin:0 0 .4rem;font-size:1.05rem}
+.card p{margin:0 0 .8rem;font-size:.85rem;color:var(--muted)}
+.card-meta{display:flex;justify-content:space-between;align-items:center;font-size:.82rem}
+.category-badge{background:rgba(47,129,247,0.12);color:#58a6ff;padding:.15rem .5rem;border-radius:99px;font-size:.75rem;text-transform:uppercase;font-weight:600}
+.login-box{max-width:420px;margin:2rem auto;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:2rem;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+.login-box h2{margin:0 0 .4rem;font-size:1.35rem}
+.login-box p{color:var(--muted);font-size:.85rem;margin:0 0 1.5rem}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:.82rem;font-weight:600;color:var(--muted);margin-bottom:.3rem;text-transform:uppercase}
+.form-group input{width:100%;box-sizing:border-box}
+.demo-pill{background:rgba(210,153,34,0.15);color:#d29922;border:1px solid rgba(210,153,34,0.3);padding:.4rem .8rem;border-radius:6px;font-size:.8rem;margin-bottom:1.2rem;display:block}
+footer{border-top:1px solid var(--border);padding:1.5rem;text-align:center;color:var(--muted);font-size:.82rem;margin-top:3rem}
+</style></head><body>
+<header>
+  <div class="nav-wrap">
+    <a href="/" class="brand">🏢 NexusCorp <span class="badge-corp">🛡️ AI-Sentinel Active WAF</span></a>
+    <nav>
+      <a href="/">Overview</a>
+      <a href="/products">Enterprise Solutions</a>
+      <a href="/about">Architecture</a>
+      <a href="/login">IAM Portal</a>
+      <a href="/sentinel/dashboard" class="nav-btn">📊 SOC Dashboard</a>
+      <a href="/sentinel/health" class="nav-btn">🩺 Health Check</a>
+    </nav>
+  </div>
+</header>
+<main>"""
+TAIL = """</main>
+<footer>
+  NexusCorp Global Operations &middot; Confidential Internal Enterprise Portal &middot; Secured by AI-Sentinel Layer-7 Threat Mitigation
+</footer>
+</body></html>"""
 
 
 def page(body, **ctx):
@@ -180,24 +239,120 @@ def page(body, **ctx):
 
 @app.route("/")
 def home():
-    return page("""<h2>Welcome</h2>
-<form action="/search" method="get"><input name="q" placeholder="search products"> <button>Search</button></form>
-<p>Demo login: <code>demo</code> / <code>demo123</code></p>
-<p><a href="/sentinel/dashboard">Open Sentinel dashboard</a> (sirf is computer se)</p>""")
+    return page("""
+<div class="hero">
+  <h1>Enterprise Resource &amp; Cloud Management Portal</h1>
+  <p>Mission-critical corporate infrastructure serving 120,000+ enterprise stakeholders across 14 global data centers. Monitored in real-time by AI-Sentinel Layer-7 active defense perimeter.</p>
+  
+  <div class="metrics-row">
+    <div class="m-card"><b>99.995%</b><span>Global SLA Uptime</span></div>
+    <div class="m-card"><b>Zero-Trust</b><span>Defense Posture</span></div>
+    <div class="m-card"><b>14 Regions</b><span>Connected Clusters</span></div>
+    <div class="m-card"><b>AES-256</b><span>Data Sovereignty</span></div>
+  </div>
+
+  <form action="/search" method="get" class="search-bar">
+    <input type="text" name="q" placeholder="Search enterprise services, modules, ledger, cloud nodes...">
+    <button type="submit">Search Directory</button>
+  </form>
+</div>
+
+<div class="panel">
+  <h2>Enterprise Management Quick Actions</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>💼 Corporate IAM Single Sign-On</h3>
+      <p>Authenticate with corporate employee credentials to access internal financial ledgers, cloud infrastructure, and HR systems.</p>
+      <div class="card-meta">
+        <span class="category-badge">Identity &amp; Access</span>
+        <a href="/login" class="nav-btn">Open IAM Login &rarr;</a>
+      </div>
+    </div>
+    <div class="card">
+      <h3>📦 Enterprise Services &amp; Modules Catalog</h3>
+      <p>Browse internal corporate microservices, Kubernetes node clusters, and global supply chain tracking pipelines.</p>
+      <div class="card-meta">
+        <span class="category-badge">Cloud Services</span>
+        <a href="/products" class="nav-btn">View Modules &rarr;</a>
+      </div>
+    </div>
+    <div class="card">
+      <h3>🛡️ Real-time Threat Intelligence Console</h3>
+      <p>Inspect active WAF defense, machine learning anomaly scores, and forensic event logs intercepted by AI-Sentinel.</p>
+      <div class="card-meta">
+        <span class="category-badge">Cybersecurity</span>
+        <a href="/sentinel/dashboard" class="nav-btn">Open SOC Dashboard &rarr;</a>
+      </div>
+    </div>
+  </div>
+</div>
+""")
 
 
 @app.route("/about")
 def about():
-    return page("<h2>About</h2><p>Ye ek practice website hai jise AI-Sentinel protect karta hai.</p>")
+    return page("""
+<div class="panel">
+  <h2>Corporate Architecture &amp; Zero-Trust Security Perimeter</h2>
+  <p style="color:var(--muted)">NexusCorp operates mission-critical enterprise systems under strict regulatory compliance frameworks (SOC-2 Type II, ISO 27001, GDPR, HIPAA).</p>
+  
+  <div class="grid" style="margin-top:1.5rem">
+    <div class="card">
+      <h3>🛡️ Layer-7 Ingress Defense</h3>
+      <p>Every inbound HTTP/S transaction is intercepted by <code>AI-Sentinel</code> prior to execution, blocking SQL Injection, Cross-Site Scripting, SSRF, and command chaining.</p>
+    </div>
+    <div class="card">
+      <h3>🧠 Machine Learning Anomaly Core</h3>
+      <p>Trained on authentic real-world HTTP traffic distributions (CSIC 2010), our Isolation Forest engine detects stealthy zero-day bypasses without relying solely on static signatures.</p>
+    </div>
+    <div class="card">
+      <h3>🗄️ Tamper-evident Audit Register</h3>
+      <p>Cryptographically sanitized incident records are logged with parameterised SQLite transactions and automated credential masking (passwords, tokens, keys).</p>
+    </div>
+    <div class="card">
+      <h3>⚡ Active Defense Orchestration</h3>
+      <p>Dynamic rate limiting and automated IP banning protect corporate authentication endpoints from distributed brute-force attacks.</p>
+    </div>
+  </div>
+</div>
+""")
 
 
 @app.route("/products")
 def products():
     category = request.args.get("category", "")
     items = [(pid, n, c, p) for pid, (n, c, p) in PRODUCTS.items() if not category or c == category.lower()]
-    return page("""<h2>Products {% if category %}in "{{ category }}"{% endif %}</h2>
-<ul>{% for pid, n, c, p in items %}<li><a href="/product?id={{ pid }}">{{ n }}</a> - Rs {{ p }} ({{ c }})</li>
-{% else %}<li>No products.</li>{% endfor %}</ul>""", items=items, category=category)
+    return page("""
+<div class="panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.8rem;margin-bottom:1.2rem">
+    <h2 style="margin:0">Enterprise Modules &amp; Solutions Catalog {% if category %}&middot; <span style="color:var(--accent)">{{ category|capitalize }}</span>{% endif %}</h2>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+      <a href="/products" class="category-badge" style="text-decoration:none">All</a>
+      <a href="/products?category=infrastructure" class="category-badge" style="text-decoration:none">Infrastructure</a>
+      <a href="/products?category=finance" class="category-badge" style="text-decoration:none">Finance</a>
+      <a href="/products?category=security" class="category-badge" style="text-decoration:none">Security</a>
+      <a href="/products?category=operations" class="category-badge" style="text-decoration:none">Operations</a>
+      <a href="/products?category=governance" class="category-badge" style="text-decoration:none">Governance</a>
+    </div>
+  </div>
+
+  <div class="grid">
+  {% for pid, n, c, p in items %}
+    <div class="card">
+      <span class="category-badge" style="margin-bottom:.5rem;display:inline-block">{{ c }}</span>
+      <h3>{{ n }}</h3>
+      <p>Corporate Enterprise Resource &middot; Module ID #{{ pid }}</p>
+      <div class="card-meta">
+        <span style="font-weight:600;color:#fff">Rs {{ p }}/mo allocation</span>
+        <a href="/product?id={{ pid }}" class="nav-btn">Specifications &rarr;</a>
+      </div>
+    </div>
+  {% else %}
+    <p style="color:var(--muted)">No enterprise modules found matching the criteria.</p>
+  {% endfor %}
+  </div>
+</div>
+""", items=items, category=category)
 
 
 @app.route("/product")
@@ -207,18 +362,64 @@ def product():
     except ValueError:
         return Response("400 Bad Request: id must be a number\n", status=400, mimetype="text/plain")
     if pid not in PRODUCTS:
-        return Response("404 Not Found\n", status=404, mimetype="text/plain")
+        return Response("404 Not Found: Enterprise module not found\n", status=404, mimetype="text/plain")
     name, category, price = PRODUCTS[pid]
-    return page("<h2>{{ name }}</h2><p>Category: {{ category }}<br>Price: Rs {{ price }}</p>",
-                name=name, category=category, price=price)
+    return page("""
+<div class="panel" style="max-width:700px;margin:1rem auto">
+  <span class="category-badge">{{ category }}</span>
+  <h2 style="margin:.6rem 0 .4rem;font-size:1.5rem">{{ name }}</h2>
+  <p style="color:var(--muted)">Corporate Enterprise Resource Specification &middot; Module #{{ pid }}</p>
+  
+  <div style="background:rgba(11,15,25,0.6);border:1px solid var(--border);border-radius:6px;padding:1.2rem;margin:1.2rem 0">
+    <div style="display:flex;justify-content:space-between;margin-bottom:.6rem;border-bottom:1px solid var(--border);padding-bottom:.4rem">
+      <span style="color:var(--muted)">Budget Allocation:</span>
+      <strong style="color:#fff">Rs {{ price }} / month</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:.6rem;border-bottom:1px solid var(--border);padding-bottom:.4rem">
+      <span style="color:var(--muted)">SLA Tier:</span>
+      <span style="color:#3fb950;font-weight:600">Tier 1 &middot; Mission Critical (99.995%)</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:.6rem;border-bottom:1px solid var(--border);padding-bottom:.4rem">
+      <span style="color:var(--muted)">Compliance Clearance:</span>
+      <span>SOC-2 Type II, ISO 27001, GDPR</span>
+    </div>
+    <div style="display:flex;justify-content:space-between">
+      <span style="color:var(--muted)">API Endpoint Route:</span>
+      <code>/api/v1/enterprise/modules/{{ pid }}</code>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:.8rem">
+    <a href="/products" class="btn" style="text-decoration:none">&larr; Back to Solutions</a>
+    <a href="/sentinel/dashboard" class="nav-btn" style="text-decoration:none;padding:.55rem 1rem">Inspect Traffic in SOC Console</a>
+  </div>
+</div>
+""", name=name, category=category, price=price, pid=pid)
 
 
 @app.route("/search")
 def search():
     q = request.args.get("q", "")
     hits = [n for n, _, _ in PRODUCTS.values() if q.lower() in n.lower()] if q else []
-    return page("""<h2>Results for: {{ q }}</h2>
-<ul>{% for n in hits %}<li>{{ n }}</li>{% else %}<li>Nothing found.</li>{% endfor %}</ul>""", q=q, hits=hits)
+    return page("""
+<div class="panel">
+  <h2>Enterprise Directory Search Results for: <span style="color:var(--accent)">"{{ q }}"</span></h2>
+  <p style="color:var(--muted)">Query scanned across corporate services, cloud infrastructure nodes, and internal ERP components.</p>
+  
+  <ul style="list-style:none;padding:0;margin:1.2rem 0">
+  {% for n in hits %}
+    <li style="background:rgba(21,28,40,0.6);border:1px solid var(--border);border-radius:6px;padding:.9rem 1.2rem;margin-bottom:.6rem;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-weight:600">{{ n }}</span>
+      <span class="category-badge">Active Module</span>
+    </li>
+  {% else %}
+    <li style="color:var(--muted);padding:1rem 0">No corporate enterprise resources found matching the specified query.</li>
+  {% endfor %}
+  </ul>
+
+  <a href="/" class="btn" style="text-decoration:none;display:inline-block">&larr; Return to Enterprise Overview</a>
+</div>
+""", q=q, hits=hits)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -230,12 +431,52 @@ def login():
         ok = hmac.compare_digest(user.encode(), DEMO_USER.encode()) & \
              hmac.compare_digest(password.encode(), DEMO_PASS.encode())
         if ok:
-            return page("<h2>Welcome, {{ user }}!</h2>", user=user)
+            return page("""
+<div class="panel" style="max-width:550px;margin:2rem auto;text-align:center">
+  <span class="badge-corp" style="font-size:.85rem;padding:.3rem .8rem">Authenticated Session Active</span>
+  <h2 style="margin:1rem 0 .5rem">Welcome, {{ user }}!</h2>
+  <p style="color:var(--muted)">Enterprise IAM Identity successfully verified. Full access to internal cloud clusters and corporate ledger granted.</p>
+  <div style="margin-top:1.5rem;display:flex;gap:.8rem;justify-content:center">
+    <a href="/products" class="btn" style="text-decoration:none">Access Enterprise Modules</a>
+    <a href="/sentinel/dashboard" class="nav-btn" style="text-decoration:none">View Security Console</a>
+  </div>
+</div>
+""", user=user)
         sentinel.record_failed_login(request.remote_addr or "unknown")   # brute-force counter
-        return page("<h2>Login failed</h2><p>Wrong username or password.</p>"), 401
-    return page("""<h2>Login</h2><form method="post">
-<input name="username" placeholder="username"><br>
-<input name="password" type="password" placeholder="password"><br><button>Login</button></form>""")
+        return page("""
+<div class="panel" style="max-width:550px;margin:2rem auto;text-align:center;border-color:#da3633">
+  <h2 style="color:#f85149;margin:0 0 .5rem">Login failed</h2>
+  <p style="color:var(--muted)">Invalid corporate username or passphrase credentials. Access failure recorded for brute-force auditing.</p>
+  <a href="/login" class="btn" style="text-decoration:none;display:inline-block;margin-top:1rem">Try Again</a>
+</div>
+"""), 401
+    return page("""
+<div class="login-box">
+  <div style="text-align:center;margin-bottom:1rem">
+    <span style="font-size:2rem">🔐</span>
+    <h2>NexusCorp Enterprise IAM</h2>
+    <p>Corporate Single Sign-On (SSO) Portal</p>
+  </div>
+  
+  <span class="demo-pill">🔑 Practice SSO Credentials: <b>demo</b> / <b>demo123</b></span>
+
+  <form method="post">
+    <div class="form-group">
+      <label>Corporate User ID / Email</label>
+      <input type="text" name="username" placeholder="e.g. employee.id@nexuscorp.internal" required>
+    </div>
+    <div class="form-group">
+      <label>Security Passphrase</label>
+      <input type="password" name="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" required>
+    </div>
+    <button type="submit" style="width:100%;margin-top:.6rem">Authenticate with Zero-Trust SSO</button>
+  </form>
+  
+  <p style="margin-top:1.5rem;font-size:.75rem;color:var(--muted);text-align:center">
+    Protected by AI-Sentinel Active Threat Defense. Unauthorized access attempts are monitored and reported to the SOC.
+  </p>
+</div>
+""")
 
 
 # =====================================================================

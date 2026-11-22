@@ -35,11 +35,11 @@ def show(title, got, expected):
     print(f"  [{mark}] {title:<52} -> {got}  (expected {expected})")
 
 
-print("1) Normal users (sab 200 aane chahiye)")
-show("home page", call("GET", "/"), 200)
-show("product page", call("GET", "/product", {"id": 2}), 200)
-show("search 'notebook'", call("GET", "/search", {"q": "notebook"}), 200)
-show("login with correct password", call("POST", "/login", form={"username": "demo", "password": "demo123"}), 200)
+print("1) Legitimate Enterprise Traffic (sab 200 aane chahiye)")
+show("corporate overview page", call("GET", "/"), 200)
+show("ERP module specifications", call("GET", "/product", {"id": 2}), 200)
+show("search directory 'notebook cluster'", call("GET", "/search", {"q": "notebook"}), 200)
+show("IAM login with valid credentials", call("POST", "/login", form={"username": "demo", "password": "demo123"}), 200)
 
 print("\n2) Attacks (sab 403 aane chahiye)")
 show("SQL injection  ' OR 1=1 --", call("GET", "/search", {"q": "' OR 1=1 --"}), 403)
