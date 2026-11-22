@@ -20,13 +20,26 @@ from . import config, features
 from .normal_traffic import make_normal_request
 
 
-def train(n_samples: int = 5000, seed: int = 42, save: bool = True) -> IsolationForest:
-    """Naqli normal traffic bana ke model train karo aur save karo."""
-    rng = random.Random(seed)
+def train(n_samples: int = 5000, seed: int = 42, save: bool = True, use_csic: bool = True) -> IsolationForest:
+    """
+    Model train karo aur save karo.
+    Agar CSIC 2010 dataset (normalTrafficTraining.txt) maujood hai to actual real-world
+    HTTP traffic se train karta hai, warna synthetic normal traffic se.
+    """
     rows = []
+
+    # 1. Actual CSIC 2010 dataset traffic (agar available ho)
+    if use_csic and os.path.exists(config.CSIC_NORMAL_TRAIN):
+        from .csic_parser import iter_csic_requests
+        for req in iter_csic_requests(config.CSIC_NORMAL_TRAIN):
+            rows.append(features.to_vector(features.extract(**req)))
+
+    # 2. Local target app normal traffic
+    rng = random.Random(seed)
     for _ in range(n_samples):
         req = make_normal_request(rng)
         rows.append(features.to_vector(features.extract(**req)))
+
     X = np.array(rows, dtype=float)
     # contamination=0.01 -> training ke ~1% normal ko bhi "ajeeb" maan lo (threshold set karta hai)
     model = IsolationForest(n_estimators=100, contamination=0.01, random_state=seed)

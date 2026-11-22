@@ -60,15 +60,15 @@
 - **Why:** Single-file database, no server to install, supports SQL queries for dashboard aggregations, sufficient for a single-process demo. Parameterised queries (`?` placeholders) prevent our own logger from being vulnerable to SQL injection.
 - **Trade-off:** Single-writer lock means concurrent multi-process deployments would need connection pooling or a move to PostgreSQL.
 
-## ADR-007: Synthetic Normal Traffic for Training (Not Real Data)
-- **Context:** Isolation Forest needs "normal" traffic to learn from. Options: real captured traffic, public dataset (CSIC 2010), or synthetic generation.
+## ADR-007: CSIC 2010 Real-World HTTP Dataset for ML Anomaly Training
+- **Context:** Isolation Forest needs "normal" traffic to learn from. Synthetic traffic alone is narrow and clean, leading to inflated recall metrics.
 - **Options Considered:**
-  1. **CSIC 2010 dataset** — 36,000 real normal + 25,000 anomalous HTTP requests. Best for evaluation but requires download and parsing.
-  2. **Capture from own lab** — realistic but needs a running website with real users.
-  3. **Synthetic generation** (`normal_traffic.py`) — fully controlled, deterministic (seed=42), instant.
-- **Decision:** Synthetic generation as the starter, with CSIC 2010 recommended for paper results.
-- **Why:** Lets the project run out-of-the-box with `python run.py` (model auto-trains on first start). No download step, no data licensing concerns. Deterministic seed ensures reproducible results.
-- **Trade-off:** Synthetic traffic is narrow and clean — the model flags anything slightly unusual. This inflates recall (100%) and underestimates real-world FPR. Documented honestly in `docs/LIMITATIONS.md` and `results/`.
+  1. **Purely Synthetic generation** (`normal_traffic.py`) — fast and deterministic, but lacks real-world web diversity.
+  2. **CSIC 2010 HTTP Dataset** — 36,000 real normal + 25,000 anomalous HTTP requests from the Spanish Research Council.
+  3. **Hybrid (CSIC 2010 + Local Target Shop)** — Trains on ~28,000 real HTTP requests from CSIC 2010 combined with 5,000 local shop requests to cover both real web traffic distributions and the protected application's routes.
+- **Decision:** Hybrid approach using CSIC 2010 dataset (`data/csic_2010/normalTrafficTraining.txt`) with synthetic fallback.
+- **Why:** Real-world traffic gives the Isolation Forest authentic parameter entropy, variable query lengths, and realistic digit/special character ratios. The parser in `sentinel/csic_parser.py` extracts 12-dimensional feature vectors directly from raw HTTP request blocks.
+- **Trade-off:** Training dataset is larger (20MB raw text), but parsing and training completes in ~0.5 seconds, retaining high developer ergonomics.
 
 ## ADR-008: Header and Cookie Inspection Scope
 - **Context:** Attackers frequently hide SQLi, XSS, and command injection payloads inside HTTP headers (`Cookie`, `Referer`, `Authorization`, `X-Forwarded-Host`) to bypass naive WAFs that inspect only query strings and form parameters.

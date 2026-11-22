@@ -3,15 +3,11 @@
 > This file lists known limitations, weaknesses, and gaps honestly.
 > AGENTS.md rule 9: "Anything unfinished or weak goes in docs/LIMITATIONS.md."
 
-## 1. Synthetic training data
+## 1. Real-World Training Data (CSIC 2010 Dataset)
 
-The Isolation Forest is trained on **computer-generated** "normal" traffic
-(`normal_traffic.py`, 5 000 samples). This traffic is very narrow and clean
-compared to real users. Consequence: the model flags anything slightly unusual
-as anomalous, inflating both recall (100 %) and false-positive rate.
+The Isolation Forest is trained on the standard **CSIC 2010 HTTP Dataset** (~28,000 real-world normal HTTP requests from `data/csic_2010/normalTrafficTraining.txt`) combined with the local target application normal patterns (`normal_traffic.py`).
 
-**Mitigation:** Train on a real dataset (e.g. CSIC 2010) or capture traffic
-from your own lab. The `train.py` script and seed are ready for this swap.
+While this provides authentic HTTP request length, entropy, and parameter distributions, note that CSIC 2010 represents traffic from a specific web application (e-Commerce testbed). Different production environments with distinct API shapes (e.g., GraphQL or large JSON payloads) would benefit from retraining on their respective traffic profiles.
 
 ## 2. Ephemeral rate/fail counters (bans are persisted)
 

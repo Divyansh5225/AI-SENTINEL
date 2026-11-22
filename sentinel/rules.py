@@ -50,7 +50,7 @@ VALUE_RULES = [
     _rule("sqli-union-select", "SQL Injection", 5, r"\bunion\b[\s(]*(?:all\b[\s(]*)?select\b"),
     # ' or 1=1  /  ' or 'a'='a  (dono taraf same cheez = hamesha true)
     _rule("sqli-tautology", "SQL Injection", 5, r"\b(?:or|and)\b\s*['\"]?(\w+)['\"]?\s*=\s*['\"]?\1\b"),
-    _rule("sqli-quote-comment", "SQL Injection", 4, r"['\"]\s*(?:--|#|/\*|;)"),
+    _rule("sqli-quote-comment", "SQL Injection", 5, r"['\"]\s*(?:--|#|/\*|;)"),
     _rule("sqli-stacked-query", "SQL Injection", 5, r";\s*(?:drop|insert|update|delete|create|alter|truncate|exec|shutdown)\b"),
     _rule("sqli-time-based", "SQL Injection", 5, r"\b(?:sleep|benchmark|pg_sleep)\s*\(|waitfor\s+delay"),
     _rule("sqli-db-metadata", "SQL Injection", 5, r"information_schema|@@version|\bload_file\s*\(|into\s+(?:out|dump)file|xp_cmdshell"),

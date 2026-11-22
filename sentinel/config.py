@@ -14,6 +14,11 @@ else:
     DB_PATH = os.environ.get("SENTINEL_DB", os.path.join(DATA_DIR, "sentinel.db"))
 MODEL_PATH = os.path.join(DATA_DIR, "model.joblib")
 
+# Actual CSIC 2010 Dataset paths
+CSIC_DIR = os.path.join(DATA_DIR, "csic_2010")
+CSIC_NORMAL_TRAIN = os.path.join(CSIC_DIR, "normalTrafficTraining.txt")
+CSIC_ANOMALOUS_TEST = os.path.join(CSIC_DIR, "anomalousTrafficTest.txt")
+
 # Mode switches (environment variable se bhi set kar sakte ho)
 DRY_RUN = os.environ.get("SENTINEL_DRY_RUN", "0") == "1"   # 1 = sirf dikhao ki kya block hota, asal me block mat karo
 USE_ML = os.environ.get("SENTINEL_USE_ML", "1") == "1"     # 0 = sirf rules (baseline comparison ke liye)
