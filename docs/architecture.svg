@@ -1,0 +1,250 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1150" width="100%" height="100%" style="background:#0b0f19; font-family:'Segoe UI',system-ui,-apple-system,sans-serif;">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="ruleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="100%" stop-color="#172554"/>
+    </linearGradient>
+    <linearGradient id="mlGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#581c87"/>
+      <stop offset="100%" stop-color="#3b0764"/>
+    </linearGradient>
+    <linearGradient id="policyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#78350f"/>
+      <stop offset="100%" stop-color="#451a03"/>
+    </linearGradient>
+    <linearGradient id="storageGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#374151"/>
+      <stop offset="100%" stop-color="#1f2937"/>
+    </linearGradient>
+    <linearGradient id="blockGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#991b1b"/>
+      <stop offset="100%" stop-color="#450a0a"/>
+    </linearGradient>
+    <linearGradient id="appGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0369a1"/>
+      <stop offset="100%" stop-color="#082f49"/>
+    </linearGradient>
+
+    <!-- Marker Arrow -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#60a5fa" />
+    </marker>
+    <marker id="arrowAmber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b" />
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444" />
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981" />
+    </marker>
+    <marker id="arrowPurple" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#c084fc" />
+    </marker>
+    <marker id="arrowGray" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#9ca3af" />
+    </marker>
+  </defs>
+
+  <!-- Title & Header -->
+  <text x="600" y="45" text-anchor="middle" fill="#f8fafc" font-size="24" font-weight="700" letter-spacing="1">AI-SENTINEL: PRODUCTION WAF ARCHITECTURE</text>
+  <text x="600" y="70" text-anchor="middle" fill="#94a3b8" font-size="13">Dual-Layer Hybrid Defense Pipeline (Deterministic Rules + Isolation Forest ML Anomaly Detection)</text>
+
+  <!-- Legend -->
+  <g transform="translate(240, 85)">
+    <rect x="0" y="0" width="16" height="16" rx="4" fill="url(#ruleGrad)" stroke="#3b82f6" stroke-width="1.5"/>
+    <text x="24" y="13" fill="#93c5fd" font-size="12" font-weight="600">Rules (Blue)</text>
+
+    <rect x="150" y="0" width="16" height="16" rx="4" fill="url(#mlGrad)" stroke="#a855f7" stroke-width="1.5"/>
+    <text x="174" y="13" fill="#d8b4fe" font-size="12" font-weight="600">ML Engine (Purple)</text>
+
+    <rect x="340" y="0" width="16" height="16" rx="4" fill="url(#policyGrad)" stroke="#f59e0b" stroke-width="1.5"/>
+    <text x="364" y="13" fill="#fde68a" font-size="12" font-weight="600">Policy (Amber)</text>
+
+    <rect x="520" y="0" width="16" height="16" rx="4" fill="url(#storageGrad)" stroke="#9ca3af" stroke-width="1.5"/>
+    <text x="544" y="13" fill="#cbd5e1" font-size="12" font-weight="600">Storage (Gray)</text>
+
+    <rect x="670" y="0" width="16" height="16" rx="4" fill="url(#blockGrad)" stroke="#ef4444" stroke-width="1.5"/>
+    <text x="694" y="13" fill="#fca5a5" font-size="12" font-weight="600">Interception (Red)</text>
+  </g>
+
+  <!-- ==================== MAIN PIPELINE ==================== -->
+  
+  <!-- Step 1: Client Request -->
+  <rect x="475" y="125" width="250" height="42" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+  <text x="600" y="151" text-anchor="middle" fill="#f0f9ff" font-size="14" font-weight="600">HTTP Client Request</text>
+
+  <!-- Arrow -->
+  <line x1="600" y1="167" x2="600" y2="195" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 2: Flask before_request Guard -->
+  <rect x="475" y="195" width="250" height="42" rx="8" fill="url(#appGrad)" stroke="#0284c7" stroke-width="2"/>
+  <text x="600" y="221" text-anchor="middle" fill="#e0f2fe" font-size="14" font-weight="600">Flask before_request Guard</text>
+
+  <!-- Arrow -->
+  <line x1="600" y1="237" x2="600" y2="265" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 3: Prefix & Tracing -->
+  <rect x="460" y="265" width="280" height="42" rx="8" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+  <text x="600" y="291" text-anchor="middle" fill="#f1f5f9" font-size="13" font-weight="600">Assign Unique Request ID</text>
+
+  <!-- Arrow -->
+  <line x1="600" y1="307" x2="600" y2="335" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 4: Extract Inputs -->
+  <rect x="460" y="335" width="280" height="42" rx="8" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+  <text x="600" y="361" text-anchor="middle" fill="#f1f5f9" font-size="13" font-weight="600">Extract Inputs &amp; Headers</text>
+
+  <!-- Arrow -->
+  <line x1="600" y1="377" x2="600" y2="410" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ==================== SUBGRAPH: Sentinel Core Engine ==================== -->
+  <rect x="80" y="410" width="1040" height="235" rx="16" fill="#0f172a" stroke="#334155" stroke-width="2" stroke-dasharray="6,4"/>
+  <text x="105" y="435" fill="#94a3b8" font-size="13" font-weight="700" letter-spacing="1">SENTINEL CORE ENGINE (sentinel/engine.py)</text>
+
+  <!-- Ban & Sliding Window -->
+  <rect x="110" y="455" width="220" height="42" rx="8" fill="url(#policyGrad)" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="220" y="481" text-anchor="middle" fill="#fef3c7" font-size="13" font-weight="600">Check Active Ban State</text>
+
+  <line x1="330" y1="476" x2="365" y2="476" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrowAmber)"/>
+
+  <rect x="365" y="455" width="240" height="42" rx="8" fill="url(#policyGrad)" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="485" y="481" text-anchor="middle" fill="#fef3c7" font-size="13" font-weight="600">Update Sliding Window Counters</text>
+
+  <!-- Connect Engine Dispatch to Ban Check -->
+  <path d="M 600 377 L 600 395 L 220 395 L 220 455" fill="none" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Parallel Branch 1: Layer 1 Rules -->
+  <line x1="485" y1="497" x2="330" y2="525" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="210" y="525" width="240" height="42" rx="8" fill="url(#ruleGrad)" stroke="#3b82f6" stroke-width="2"/>
+  <text x="330" y="551" text-anchor="middle" fill="#dbeafe" font-size="13" font-weight="600">Match Scored Regex Signatures</text>
+
+  <!-- Parallel Branch 2: Layer 2 ML -->
+  <line x1="485" y1="497" x2="640" y2="525" stroke="#a855f7" stroke-width="2" marker-end="url(#arrowPurple)"/>
+
+  <rect x="520" y="525" width="240" height="42" rx="8" fill="url(#mlGrad)" stroke="#a855f7" stroke-width="2"/>
+  <text x="640" y="551" text-anchor="middle" fill="#f3e8ff" font-size="13" font-weight="600">Isolation Forest Anomaly Scoring</text>
+
+  <!-- Convergence to Layer 3: Policy Manager -->
+  <line x1="330" y1="567" x2="485" y2="590" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="640" y1="567" x2="485" y2="590" stroke="#a855f7" stroke-width="2" marker-end="url(#arrowPurple)"/>
+
+  <rect x="360" y="590" width="250" height="42" rx="8" fill="url(#policyGrad)" stroke="#f59e0b" stroke-width="2"/>
+  <text x="485" y="616" text-anchor="middle" fill="#fef3c7" font-size="13" font-weight="700">Evaluate Fused Security Policy</text>
+
+  <!-- ==================== DECISION BRANCHING ==================== -->
+  <line x1="485" y1="632" x2="485" y2="675" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrowAmber)"/>
+
+  <!-- Decision diamond represented as stylish hexagon/pill -->
+  <rect x="375" y="675" width="220" height="44" rx="22" fill="#1e293b" stroke="#f59e0b" stroke-width="2"/>
+  <text x="485" y="702" text-anchor="middle" fill="#fef3c7" font-size="13" font-weight="700">Policy Action Evaluation</text>
+
+  <!-- Branch 1: BLOCK (Left, Red) -->
+  <path d="M 375 697 L 190 697 L 190 750" fill="none" stroke="#ef4444" stroke-width="2" marker-end="url(#arrowRed)"/>
+  <text x="240" y="688" fill="#f87171" font-size="11" font-weight="700">Score>=5 or (Score>0 &amp; ML)</text>
+
+  <rect x="80" y="750" width="220" height="44" rx="8" fill="url(#blockGrad)" stroke="#ef4444" stroke-width="2"/>
+  <text x="190" y="777" text-anchor="middle" fill="#fee2e2" font-size="13" font-weight="700">Block &amp; Ban Escalation</text>
+
+  <!-- Branch 2: RATE LIMIT (Middle, Amber) -->
+  <line x1="485" y1="719" x2="485" y2="750" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrowAmber)"/>
+  <text x="495" y="738" fill="#fbbf24" font-size="11" font-weight="700">Rate &gt; 20</text>
+
+  <rect x="375" y="750" width="220" height="44" rx="8" fill="url(#policyGrad)" stroke="#f59e0b" stroke-width="2"/>
+  <text x="485" y="777" text-anchor="middle" fill="#fef3c7" font-size="13" font-weight="700">Enforce Sliding Rate Limit</text>
+
+  <!-- Branch 3: ALLOW (Right, Green/Blue) -->
+  <path d="M 595 697 L 780 697 L 780 750" fill="none" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <text x="690" y="688" fill="#34d399" font-size="11" font-weight="700">Clean / ML Alert Only</text>
+
+  <rect x="670" y="750" width="220" height="44" rx="8" fill="url(#appGrad)" stroke="#0284c7" stroke-width="2"/>
+  <text x="780" y="777" text-anchor="middle" fill="#e0f2fe" font-size="13" font-weight="700">Allow Target Route Execution</text>
+
+  <!-- Outgoing Responses -->
+  <line x1="190" y1="794" x2="190" y2="830" stroke="#ef4444" stroke-width="2" marker-end="url(#arrowRed)"/>
+  <rect x="80" y="830" width="220" height="42" rx="8" fill="url(#blockGrad)" stroke="#ef4444" stroke-width="2"/>
+  <text x="190" y="856" text-anchor="middle" fill="#fee2e2" font-size="13" font-weight="700">HTTP 403 Security Interception</text>
+
+  <line x1="485" y1="794" x2="485" y2="830" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrowAmber)"/>
+  <rect x="375" y="830" width="220" height="42" rx="8" fill="url(#policyGrad)" stroke="#f59e0b" stroke-width="2"/>
+  <text x="485" y="856" text-anchor="middle" fill="#fef3c7" font-size="13" font-weight="700">HTTP 429 Rate Limit</text>
+
+  <line x1="780" y1="794" x2="780" y2="830" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <rect x="670" y="830" width="220" height="42" rx="8" fill="url(#appGrad)" stroke="#0284c7" stroke-width="2"/>
+  <text x="780" y="856" text-anchor="middle" fill="#e0f2fe" font-size="13" font-weight="700">NexusCorp Target App Portal</text>
+
+  <line x1="780" y1="872" x2="780" y2="898" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <rect x="670" y="898" width="220" height="38" rx="8" fill="#1e293b" stroke="#059669" stroke-width="1.5"/>
+  <text x="780" y="922" text-anchor="middle" fill="#a7f3d0" font-size="12" font-weight="600">Append Defense Security Headers</text>
+
+  <line x1="780" y1="936" x2="780" y2="958" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <rect x="670" y="958" width="220" height="38" rx="8" fill="#064e3b" stroke="#10b981" stroke-width="2"/>
+  <text x="780" y="982" text-anchor="middle" fill="#ecfdf5" font-size="13" font-weight="700">HTTP 200 Corporate Response</text>
+
+  <!-- ==================== STORAGE & LOGGING (SQLite) ==================== -->
+  <line x1="190" y1="794" x2="190" y2="810"/>
+  <path d="M 190 810 L 320 810 L 320 900 L 450 900" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <path d="M 485 794 L 485 900" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <path d="M 670 772 L 580 772 L 580 900 L 520 900" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+  <rect x="365" y="910" width="240" height="50" rx="10" fill="url(#storageGrad)" stroke="#9ca3af" stroke-width="2"/>
+  <text x="485" y="933" text-anchor="middle" fill="#f8fafc" font-size="13" font-weight="700">SQLite Storage (sentinel.db)</text>
+  <text x="485" y="950" text-anchor="middle" fill="#cbd5e1" font-size="11">Masked Passwords + Request UUID</text>
+
+  <!-- Side Branch 1: SOC Dashboard -->
+  <line x1="485" y1="960" x2="485" y2="995" stroke="#9ca3af" stroke-width="2" marker-end="url(#arrowGray)"/>
+  <rect x="365" y="995" width="240" height="42" rx="8" fill="#1e293b" stroke="#9ca3af" stroke-width="1.5"/>
+  <text x="485" y="1021" text-anchor="middle" fill="#f1f5f9" font-size="13" font-weight="600">Real-Time SOC Dashboard</text>
+
+  <!-- Side Branch 2: Webhook Alert -->
+  <path d="M 80 772 L 30 772 L 30 850 L 50 850" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <rect x="10" y="860" width="160" height="40" rx="8" fill="#450a0a" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="90" y="885" text-anchor="middle" fill="#fca5a5" font-size="11" font-weight="700">Async Webhook Alert</text>
+
+  <!-- Side Branch 3: Manual Unban -->
+  <rect x="940" y="455" width="160" height="42" rx="8" fill="url(#policyGrad)" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="1020" y="481" text-anchor="middle" fill="#fef3c7" font-size="12" font-weight="600">Manual Unban Admin Action</text>
+
+  <line x1="940" y1="476" x2="330" y2="476" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,4" marker-end="url(#arrowAmber)"/>
+
+  <!-- ==================== DIAGRAM 2: OFFLINE ML PIPELINE ==================== -->
+  <g transform="translate(80, 1055)">
+    <rect x="0" y="0" width="1040" height="80" rx="12" fill="#131127" stroke="#7e22ce" stroke-width="1.5"/>
+    <text x="20" y="24" fill="#c084fc" font-size="12" font-weight="700" letter-spacing="1">OFFLINE ML TRAINING PIPELINE (sentinel/ml.py)</text>
+
+    <!-- Step 1 -->
+    <rect x="20" y="34" width="180" height="34" rx="6" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/>
+    <text x="110" y="56" text-anchor="middle" fill="#e0e7ff" font-size="11" font-weight="600">CSIC 2010 HTTP Dataset</text>
+
+    <line x1="200" y1="51" x2="230" y2="51" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+
+    <!-- Step 2 -->
+    <rect x="230" y="34" width="180" height="34" rx="6" fill="#2e1065" stroke="#9333ea" stroke-width="1"/>
+    <text x="320" y="56" text-anchor="middle" fill="#f3e8ff" font-size="11" font-weight="600">Stream Parse Raw Requests</text>
+
+    <line x1="410" y1="51" x2="440" y2="51" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+
+    <!-- Step 3 -->
+    <rect x="440" y="34" width="190" height="34" rx="6" fill="#3b0764" stroke="#c084fc" stroke-width="1"/>
+    <text x="535" y="56" text-anchor="middle" fill="#f5d0fe" font-size="11" font-weight="600">Extract 12 Structural Features</text>
+
+    <line x1="630" y1="51" x2="660" y2="51" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+
+    <!-- Step 4 -->
+    <rect x="660" y="34" width="190" height="34" rx="6" fill="url(#mlGrad)" stroke="#a855f7" stroke-width="1.5"/>
+    <text x="755" y="56" text-anchor="middle" fill="#fae8ff" font-size="11" font-weight="700">Fit Unsupervised Isolation Forest</text>
+
+    <line x1="850" y1="51" x2="880" y2="51" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+
+    <!-- Step 5 -->
+    <rect x="880" y="34" width="140" height="34" rx="6" fill="#1f2937" stroke="#10b981" stroke-width="1.5"/>
+    <text x="950" y="56" text-anchor="middle" fill="#a7f3d0" font-size="11" font-weight="700">model.joblib</text>
+  </g>
+
+</svg>

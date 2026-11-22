@@ -520,6 +520,9 @@ th{color:var(--muted);font-weight:600}td.payload{max-width:260px;word-break:brea
 .badge.alert{background:#f79009;color:#111;border-color:#dc6803}
 .badge.rate_limit{background:#7a5af8;color:#fff;border-color:#6938ef}
 .badge.allow{background:transparent;color:var(--muted)}
+.countdown-badge{display:inline-flex;align-items:center;gap:.4rem;background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:.2rem .65rem;border-radius:99px;font-size:.85rem;font-weight:600;margin-left:.75rem;vertical-align:middle}
+.pulse-dot{width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981;display:inline-block}
+.timer-digit{color:#38bdf8;font-size:1.15rem;font-weight:800;font-family:monospace;min-width:14px;display:inline-block;text-align:center}
 </style></head>
 <body onload="
 (function(){
@@ -534,23 +537,26 @@ th{color:var(--muted);font-weight:600}td.payload{max-width:260px;word-break:brea
   setInterval(function(){
     if (!window.isAutoRefresh) return;
     window.countdown--;
+    var t = document.getElementById('refresh-timer');
     if (window.countdown <= 0) {
+      if (t) t.textContent = '0s';
       window.location.reload();
-    } else if (timerEl) {
-      timerEl.textContent = window.countdown + 's';
+    } else if (t) {
+      t.textContent = window.countdown + 's';
     }
   }, 1000);
 
   window.toggleRefresh = function(){
     window.isAutoRefresh = !window.isAutoRefresh;
+    var toggleBtn = document.getElementById('toggle-refresh');
+    var t = document.getElementById('refresh-timer');
     if (window.isAutoRefresh) {
       window.countdown = 5;
       if (toggleBtn) toggleBtn.textContent = '⏸ Pause';
-      if (statusSpan) statusSpan.innerHTML = 'Auto-refresh in <b id=\'refresh-timer\'>5s</b>';
-      timerEl = document.getElementById('refresh-timer');
+      if (t) t.textContent = '5s';
     } else {
       if (toggleBtn) toggleBtn.textContent = '▶ Resume';
-      if (statusSpan) statusSpan.innerHTML = 'Auto-refresh <b>PAUSED</b>';
+      if (t) t.textContent = 'PAUSED';
     }
   };
 
@@ -594,8 +600,14 @@ th{color:var(--muted);font-weight:600}td.payload{max-width:260px;word-break:brea
 <main>
 <div class="header-row">
   <div>
-    <h1>AI-Sentinel</h1>
-    <div class="mode">Mode: {{ mode }} &middot; <span id="refresh-status-text">Auto-refresh in <b id="refresh-timer">5s</b></span></div>
+    <div style="display:flex;align-items:center;flex-wrap:wrap">
+      <h1 style="margin:0">AI-Sentinel</h1>
+      <div class="countdown-badge">
+        <span class="pulse-dot"></span>
+        <span id="refresh-status-text">Auto-refresh in <b id="refresh-timer" class="timer-digit">5s</b></span>
+      </div>
+    </div>
+    <div class="mode" style="margin-top:.35rem">Mode: {{ mode }} &middot; Real-Time Threat Stream</div>
   </div>
   <div class="header-actions">
     <button id="toggle-refresh" class="btn" onclick="toggleRefresh()">⏸ Pause</button>
@@ -637,17 +649,17 @@ th{color:var(--muted);font-weight:600}td.payload{max-width:260px;word-break:brea
 
 <div class="panel scroll"><table id="events-table">
 <thead>
-<tr><th>Time</th><th>IP</th><th>Request</th><th>Payload</th><th>Action</th><th>Category</th><th>Rule score</th><th>ML score</th><th>Why</th></tr>
+<tr><th>Time</th><th>Req ID</th><th>IP</th><th>Request</th><th>Payload</th><th>Action</th><th>Category</th><th>Rule</th><th>ML</th><th>Latency</th><th>Why</th></tr>
 </thead>
 <tbody>
 {% for e in events %}
 <tr data-action="{{ e.action }}" data-search="{{ (e.ip ~ ' ' ~ e.method ~ ' ' ~ e.path ~ ' ' ~ e.payload ~ ' ' ~ e.category ~ ' ' ~ e.reason)|lower }}">
-<td>{{ e.time }}</td><td>{{ e.ip }}</td><td>{{ e.method }} {{ e.path }}</td><td class="payload">{{ e.payload }}</td>
+<td>{{ e.time }}</td><td><code>{{ e.request_id or '-' }}</code></td><td>{{ e.ip }}</td><td>{{ e.method }} {{ e.path }}</td><td class="payload">{{ e.payload }}</td>
 <td><span class="badge {{ e.action }}">{{ e.action }}</span>{% if not e.enforced and e.action in ('block','rate_limit') %} (dry-run){% endif %}</td>
-<td>{{ e.category }}</td><td>{{ e.rule_score }}</td><td>{{ e.ml_score if e.ml_score is not none else '-' }}</td><td>{{ e.reason }}</td>
+<td>{{ e.category }}</td><td>{{ e.rule_score }}</td><td>{{ e.ml_score if e.ml_score is not none else '-' }}</td><td><span style="font-family:monospace;font-size:0.8rem;color:#8b949e">{{ e.latency_ms ~ 'ms' if e.latency_ms else '-' }}</span></td><td>{{ e.reason }}</td>
 </tr>
 {% else %}
-<tr><td colspan="9">No events yet. Open the website and try something.</td></tr>
+<tr><td colspan="11">No events yet. Open the website and try something.</td></tr>
 {% endfor %}
 </tbody>
 </table></div></main></body></html>"""

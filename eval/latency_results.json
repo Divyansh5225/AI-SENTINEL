@@ -1,0 +1,46 @@
+{
+  "machine_specs": {
+    "python_version": "3.14.0",
+    "os": "Windows-11-10.0.26300-SP0",
+    "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+    "machine": "AMD64",
+    "cpu_count": 16
+  },
+  "n_requests": 1000,
+  "warmup_requests": 50,
+  "ip_strategy": "unique_ip_per_request (10.0.x.y) to prevent rate-limit and brute-force state interference",
+  "baseline_waf_bypassed_ms": {
+    "mean": 1.0229846996371634,
+    "median": 1.090099998691585,
+    "p95": 1.3414199987892061,
+    "p99": 1.5346130001125857,
+    "min": 0.17430000298190862,
+    "max": 14.039400004548952
+  },
+  "e2e_waf_enabled_ms": {
+    "mean": 7.67341900007159,
+    "median": 7.638050003151875,
+    "p95": 8.52967500250088,
+    "p99": 9.62313000927679,
+    "min": 6.126599997514859,
+    "max": 13.64119999925606
+  },
+  "engine_inspection_only_ms": {
+    "mean": 3.7579016001109267,
+    "median": 3.715850005391985,
+    "p95": 4.188245005207136,
+    "p99": 4.632191008568042,
+    "min": 3.405900002690032,
+    "max": 6.457299998146482
+  },
+  "ml_predict_only_ms": {
+    "mean": 3.6958880003076047,
+    "median": 3.6517499975161627,
+    "p95": 4.111730006115977,
+    "p99": 4.574664995307103,
+    "min": 3.3536999981151894,
+    "max": 6.35830000101123
+  },
+  "waf_overhead_mean_ms": 6.650434300434426,
+  "waf_overhead_median_ms": 6.54795000446029
+}

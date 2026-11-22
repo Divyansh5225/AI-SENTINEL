@@ -20,4 +20,5 @@ ENV/
 .vscode/
 
 # Keep data/model.joblib for deployment, ignore sqlite db if created locally
-data/sentinel.db
+data/*.db
+*.db

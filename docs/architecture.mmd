@@ -1,0 +1,84 @@
+%% =====================================================================
+%% AI-SENTINEL: Complete Production Architecture Diagram
+%% Generated directly from actual codebase implementation
+%% Colors: rules=blue, ML=purple, policy=amber, storage=gray
+%% All box labels max 4 words per box
+%% =====================================================================
+
+flowchart TD
+    %% --- STYLES ---
+    classDef ruleNode fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a8a;
+    classDef mlNode fill:#f3e8ff,stroke:#9333ea,stroke-width:2px,color:#581c87;
+    classDef policyNode fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f;
+    classDef storageNode fill:#f3f4f6,stroke:#4b5563,stroke-width:2px,color:#1f2937;
+    classDef appNode fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1;
+    classDef alertNode fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#991b1b;
+
+    %% --- INCOMING REQUEST FLOW ---
+    Client["HTTP Client Request"] --> Guard["Flask before_request Guard"]
+    Guard --> SkipCheck{"Skip /sentinel/ Prefixes?"}
+    SkipCheck -- "Yes" --> TargetRoute["Direct Target Route Execution"]
+    SkipCheck -- "No" --> ReqID["Assign Unique Request ID"]
+    ReqID --> Extract["Extract Inputs & Headers"]
+    Extract --> Engine["Sentinel Policy Dispatcher"]
+
+    %% --- ENGINE PIPELINE ---
+    subgraph CoreEngine["Sentinel Core Inspection Engine"]
+        Engine --> Allowlist{"IP in Allowlist?"}
+        Allowlist -- "Yes" --> DirectAllow["Bypass All Checks (Allow)"]
+        Allowlist -- "No" --> BanCheck{"Active IP Ban?"}
+        BanCheck -- "Yes" --> ImmediateBan["Enforce Active IP Ban"]
+        BanCheck -- "No" --> SlidingWindows["Update Sliding Window Counters"]
+        
+        SlidingWindows --> Normalizer["Multi-Layer Decode & Normalize"]
+        Normalizer --> RuleScan["Match Scored Regex Signatures"]:::ruleNode
+        
+        SlidingWindows --> FeatVector["Extract 12 Numerical Features"]:::mlNode
+        FeatVector --> MLScore["Isolation Forest Anomaly Scoring"]:::mlNode
+
+        RuleScan --> PolicyMgr["Evaluate Fused Security Policy"]:::policyNode
+        MLScore --> PolicyMgr
+        ImmediateBan --> PolicyMgr
+        DirectAllow --> PolicyMgr
+    end
+
+    %% --- DECISION OUTCOMES ---
+    PolicyMgr --> DecisionCheck{"Policy Action Evaluation"}:::policyNode
+
+    DecisionCheck -- "block (Score>=5 or Rule+ML)" --> BlockAction["Block & Ban Escalation"]:::alertNode
+    DecisionCheck -- "rate_limit (Rate>20)" --> RateAction["Enforce Sliding Rate Limit"]:::policyNode
+    DecisionCheck -- "allow / alert" --> AllowAction["Allow Target Route Execution"]:::appNode
+
+    %% --- LOGGING & RESPONSES ---
+    BlockAction --> DBLog["Log SQLite Audit Event"]:::storageNode
+    RateAction --> DBLog
+    AllowAction --> DBLog
+
+    DBLog --> DB[(SQLite Database sentinel.db)]:::storageNode
+
+    BlockAction --> WebhookAlert["Async Background Webhook Alert"]:::alertNode
+    BlockAction --> Res403["HTTP 403 Security Interception"]:::alertNode
+    RateAction --> Res429["HTTP 429 Rate Limit"]:::policyNode
+    
+    AllowAction --> TargetApp["NexusCorp Target App Portal"]:::appNode
+    TargetApp --> SecHeaders["Append Defense Security Headers"]:::appNode
+    SecHeaders --> Res200["HTTP 200 Corporate Response"]:::appNode
+
+    %% --- SIDE BRANCHES & OPS ---
+    Dashboard["Real-Time SOC Dashboard"]:::storageNode -->|Read Stats & Events| DB
+    Admin["SOC Incident Responder"] -->|Manual 1-Click Unban| UnbanAPI["Invoke Unban API Endpoint"]:::policyNode
+    UnbanAPI -->|Clear Active Ban| CoreEngine
+    UnbanAPI -->|Delete Banned Row| DB
+
+    %% =====================================================================
+    %% DIAGRAM 2: Offline ML Training Pipeline
+    %% =====================================================================
+    subgraph OfflineML["Offline ML Training Pipeline"]
+        CSICData["CSIC 2010 HTTP Dataset"]:::storageNode --> Parser["Stream Parse Raw Requests"]:::mlNode
+        SynthData["Synthetic Normal Traffic Generator"]:::storageNode --> Parser
+        Parser --> FeatExtract["Extract Structural Feature Vectors"]:::mlNode
+        FeatExtract --> TrainIF["Fit Unsupervised Isolation Forest"]:::mlNode
+        TrainIF --> SaveModel["Persist Model model.joblib"]:::storageNode
+    end
+
+    SaveModel -.->|Load on Startup| MLScore
